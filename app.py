@@ -67,27 +67,30 @@ def load_model(checkpoint_path,
     std = np.asarray(ckpt["normalization_std"], dtype=np.float32)
     names = ckpt.get("class_names", CLASS_NAMES)
     return model, mean, std, names, device_local
-def download_model_files():
-    repo_id = os.getenv("HF_MODEL_REPO", "")
 
-    if not repo_id:
-        try:
-            repo_id = st.secrets["HF_MODEL_REPO"]
-        except Exception:
-            raise ValueError(
-                "Chua cau hinh HF_MODEL_REPO trong Streamlit Secrets."
-            )
+def download_model_files():
+    hf_token = st.secrets.get("HF_TOKEN", "")
+    repo_id = st.secrets.get(
+        "HF_MODEL_REPO",
+        "mducki/cotmix-dinov3-kuhar"
+    )
+
+    if not hf_token:
+        raise ValueError(
+            "Chua cau hinh HF_TOKEN trong Streamlit Secrets."
+        )
 
     checkpoint_path = hf_hub_download(
         repo_id=repo_id,
         filename="cotmix_dinov3_kuhar.pth",
-        repo_type="model",
+        token=hf_token
     )
 
     dinov3_weights_path = hf_hub_download(
         repo_id=repo_id,
         filename="dinov3_vits16_pretrain.pth",
         repo_type="model",
+        token=hf_token,
     )
 
     return checkpoint_path, dinov3_weights_path
