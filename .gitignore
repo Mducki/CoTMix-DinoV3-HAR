@@ -1,0 +1,73 @@
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Datasets and raw data
+data/
+dataset/
+datasets/
+raw_data/
+raw_domains/
+**/raw_domains/
+*.csv
+*.tsv
+*.parquet
+*.feather
+
+# Model checkpoints and weights
+checkpoints/
+**/checkpoints/
+*.pth
+*.pt
+*.ckpt
+*.onnx
+*.safetensors
+*.h5
+*.hdf5
+*.weights
+*.pkl
+*.pickle
+
+# Training outputs
+runs/
+outputs/
+results/
+logs/
+wandb/
+mlruns/
+lightning_logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+__pycache__/
+.venv/
+data/
+checkpoints/
+*.pth
+*.pt
+*.ckpt
+*.onnx
+*.safetensors
+*.h5
+*.hdf5
+*.weights
