@@ -1,3 +1,4 @@
+from huggingface_hub import hf_hub_download
 import os
 import tempfile
 import numpy as np
@@ -47,13 +48,16 @@ status_text = "Hệ thống đang hoạt động" if not st.session_state.sensor
 st.markdown(f'''<div class="hero"><div><h1>Dự đoán hành vi thông minh</h1><div class="sub">Giám sát dữ liệu cảm biến • Phân tích hành vi từ mô hình CoTMix + DINOv3</div></div><div class="status">● &nbsp;{status_text}</div></div>''', unsafe_allow_html=True)
 
 @st.cache_resource(show_spinner="Đang nạp mô hình...")
-def load_model(checkpoint_path, dinov3_repo, device_name):
+def load_model(checkpoint_path,
+    dinov3_repo,
+    device_name,
+    dinov3_weights_path,):
     device_local = torch.device(device_name)
     ckpt = torch.load(checkpoint_path, map_location=device_local, weights_only=False)
     hp = ckpt.get("hparams", {})
     model = CoTMix(
         configs=None, hparams=hp, device=device_local, dinov3_repo=dinov3_repo,
-        dinov3_weights=None, pretrained=False,
+        dinov3_weights=dinov3_weights_path, pretrained=False,
         image_size=int(ckpt.get("image_size", 224)),
         num_classes=len(ckpt.get("class_names", CLASS_NAMES)),
     ).to(device_local)
@@ -63,7 +67,30 @@ def load_model(checkpoint_path, dinov3_repo, device_name):
     std = np.asarray(ckpt["normalization_std"], dtype=np.float32)
     names = ckpt.get("class_names", CLASS_NAMES)
     return model, mean, std, names, device_local
+def download_model_files():
+    repo_id = os.getenv("HF_MODEL_REPO", "")
 
+    if not repo_id:
+        try:
+            repo_id = st.secrets["HF_MODEL_REPO"]
+        except Exception:
+            raise ValueError(
+                "Chua cau hinh HF_MODEL_REPO trong Streamlit Secrets."
+            )
+
+    checkpoint_path = hf_hub_download(
+        repo_id=repo_id,
+        filename="cotmix_dinov3_kuhar.pth",
+        repo_type="model",
+    )
+
+    dinov3_weights_path = hf_hub_download(
+        repo_id=repo_id,
+        filename="dinov3_vits16_pretrain.pth",
+        repo_type="model",
+    )
+
+    return checkpoint_path, dinov3_weights_path
 left, right = st.columns([0.34, 0.66], gap="large")
 with left:
     st.markdown('<div class="section-label">NGUỒN DỮ LIỆU</div>', unsafe_allow_html=True)
@@ -96,7 +123,14 @@ with right:
             st.error(f"Không tìm thấy thư mục mã DINOv3: {dinov3_repo}")
         else:
             try:
-                model, mean, std, class_names, device_local = load_model(checkpoint_path, dinov3_repo, str(device))
+                checkpoint_path, dinov3_weights_path = download_model_files()
+
+                model, mean, std, class_names, device_local = load_model(
+                    checkpoint_path,
+                    dinov3_repo,
+                    str(device),
+                    dinov3_weights_path,
+                )
                 with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
                     tmp.write(uploaded.getvalue())
                     temp_path = tmp.name
