@@ -102,9 +102,7 @@ with left:
         st.error("Không kết nối được cảm biến. Chưa có thiết bị/API cảm biến trực tiếp được cấu hình. Bạn vẫn có thể tải tệp CSV để dự đoán.")
     if not st.session_state.sensor_connected:
         st.caption("Trạng thái: Chưa kết nối")
-    st.markdown('<div class="section-label">ĐIỀU KHIỂN</div>', unsafe_allow_html=True)
-    checkpoint_path = st.text_input("Checkpoint mô hình (.pth)", value=os.getenv("MODEL_CHECKPOINT", "checkpoints/cotmix_dinov3_kuhar.pth"))
-    dinov3_repo = st.text_input("Thư mục mã DINOv3", value=os.getenv("DINOV3_REPO", "dinov3"))
+    dinov3_repo = os.getenv("DINOV3_REPO", "dinov3")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     st.caption(f"Thiết bị suy luận: {device}" + (f" — {torch.cuda.get_device_name(0)}" if device.type == "cuda" else ""))
     start = st.button("▶  Bắt đầu dự đoán", type="primary", use_container_width=True, disabled=uploaded is None)
@@ -115,48 +113,82 @@ with left:
 
 with right:
     st.markdown('<div class="section-label">KẾT QUẢ DỰ ĐOÁN</div>', unsafe_allow_html=True)
+
     if start and uploaded is not None:
         st.session_state.prediction_started = True
-        if not os.path.isfile(checkpoint_path):
-            st.error(f"Không tìm thấy checkpoint: {checkpoint_path}. Hãy đặt file .pth vào thư mục này hoặc sửa đường dẫn.")
-        elif not os.path.isdir(dinov3_repo):
-            st.error(f"Không tìm thấy thư mục mã DINOv3: {dinov3_repo}")
-        else:
-            try:
-                checkpoint_path, dinov3_weights_path = download_model_files()
 
-                model, mean, std, class_names, device_local = load_model(
-                    checkpoint_path,
-                    dinov3_repo,
-                    str(device),
-                    dinov3_weights_path,
+        try:
+            # Tai checkpoint tu Hugging Face truoc khi nap mo hinh
+            checkpoint_path, dinov3_weights_path = download_model_files()
+
+            if not os.path.isfile(checkpoint_path):
+                raise FileNotFoundError(
+                    f"Khong tim thay checkpoint: {checkpoint_path}"
                 )
-                with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
-                    tmp.write(uploaded.getvalue())
-                    temp_path = tmp.name
-                try:
-                    X = recording_to_windows(temp_path)
-                finally:
-                    os.unlink(temp_path)
-                if len(X) == 0:
-                    st.error("Không tìm thấy cửa sổ dữ liệu hợp lệ. Hãy kiểm tra định dạng CSV và các cột cảm biến.")
-                else:
-                    ds = SensorDataset(X, None, mean, std)
-                    loader = torch.utils.data.DataLoader(ds, batch_size=8, shuffle=False)
-                    rows = []
-                    with torch.no_grad():
-                        for x in loader:
-                            x = x.to(device_local)
-                            logits = model.classifier(model.feature_extractor(x))
-                            probs = torch.softmax(logits, dim=1)
-                            for prob in probs:
-                                top = torch.topk(prob, k=min(3, len(class_names)))
-                                pred_idx = int(top.indices[0].item())
-                                rows.append({"Cửa sổ": len(rows)+1, "Hoạt động dự đoán": class_names[pred_idx], "Độ tin cậy (%)": round(float(top.values[0].item())*100, 2)})
-                    st.session_state.results = rows
-            except Exception as exc:
-                st.error(f"Không thể dự đoán: {exc}")
-                st.code(traceback.format_exc())
+
+            if not os.path.isdir(dinov3_repo):
+                raise FileNotFoundError(
+                    f"Khong tim thay thu muc ma DINOv3: {dinov3_repo}"
+                )
+
+            model, mean, std, class_names, device_local = load_model(
+                checkpoint_path,
+                dinov3_repo,
+                str(device),
+                dinov3_weights_path,
+            )
+
+            with tempfile.NamedTemporaryFile(
+                suffix=".csv", delete=False
+            ) as tmp:
+                tmp.write(uploaded.getvalue())
+                temp_path = tmp.name
+
+            try:
+                X = recording_to_windows(temp_path)
+            finally:
+                os.unlink(temp_path)
+
+            if len(X) == 0:
+                st.error(
+                    "Khong tim thay cua so du lieu hop le. "
+                    "Hay kiem tra dinh dang CSV va cac cot cam bien."
+                )
+            else:
+                ds = SensorDataset(X, None, mean, std)
+                loader = torch.utils.data.DataLoader(
+                    ds, batch_size=8, shuffle=False
+                )
+                rows = []
+
+                with torch.no_grad():
+                    for x in loader:
+                        x = x.to(device_local)
+                        logits = model.classifier(
+                            model.feature_extractor(x)
+                        )
+                        probs = torch.softmax(logits, dim=1)
+
+                        for prob in probs:
+                            top = torch.topk(
+                                prob, k=min(3, len(class_names))
+                            )
+                            pred_idx = int(top.indices[0].item())
+
+                            rows.append({
+                                "Cua so": len(rows) + 1,
+                                "Hoat dong du doan": class_names[pred_idx],
+                                "Do tin cay (%)": round(
+                                    float(top.values[0].item()) * 100, 2
+                                ),
+                            })
+
+                st.session_state.results = rows
+
+        except Exception as exc:
+            st.error(f"Khong the du doan: {exc}")
+            st.code(traceback.format_exc())
+
     if stop:
         st.session_state.pop("results", None)
     results = st.session_state.get("results", [])
