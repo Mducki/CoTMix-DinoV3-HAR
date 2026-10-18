@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import torch
+import traceback
 
 from algorithms import CoTMix
 from kuhar_data import CLASS_NAMES, recording_to_windows, SensorDataset
@@ -75,7 +76,7 @@ with left:
     if not st.session_state.sensor_connected:
         st.caption("Trạng thái: Chưa kết nối")
     st.markdown('<div class="section-label">ĐIỀU KHIỂN</div>', unsafe_allow_html=True)
-    checkpoint_path = st.text_input("Checkpoint mô hình (.pth)", value=os.getenv("MODEL_CHECKPOINT", "checkpoints/test.pth"))
+    checkpoint_path = st.text_input("Checkpoint mô hình (.pth)", value=os.getenv("MODEL_CHECKPOINT", "checkpoints/cotmix_dinov3_kuhar.pth"))
     dinov3_repo = st.text_input("Thư mục mã DINOv3", value=os.getenv("DINOV3_REPO", "dinov3"))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     st.caption(f"Thiết bị suy luận: {device}" + (f" — {torch.cuda.get_device_name(0)}" if device.type == "cuda" else ""))
@@ -121,6 +122,7 @@ with right:
                     st.session_state.results = rows
             except Exception as exc:
                 st.error(f"Không thể dự đoán: {exc}")
+                st.code(traceback.format_exc())
     if stop:
         st.session_state.pop("results", None)
     results = st.session_state.get("results", [])

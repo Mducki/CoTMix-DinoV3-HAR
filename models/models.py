@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -31,11 +32,21 @@ class DINOv3TimeSeriesEncoder(nn.Module):
                 "Pretrained DINOv3 weights are required. Pass weights_path to the .pth checkpoint."
             )
 
+        if weights_path is None:
+            weights_path = "checkpoints/dinov3_vits16_pretrain.pth"
+
+        weights_path = os.path.abspath(weights_path)
+
+        if not os.path.isfile(weights_path):
+            raise FileNotFoundError(
+                f"Khong tim thay DINOv3 weights: {weights_path}"
+            )
+
         self.backbone = torch.hub.load(
             self.repo_dir,
             self.model_name,
             source="local",
-            weights=str(weights_path) if pretrained else None,
+            weights=str(weights_path),
         )
 
         dim = getattr(self.backbone, "num_features", None)
