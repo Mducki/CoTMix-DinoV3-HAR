@@ -195,12 +195,56 @@ with right:
     if stop:
         st.session_state.pop("results", None)
     results = st.session_state.get("results", [])
+    
     if results:
         first = results[0]
-        st.markdown(f'''<div class="result-panel"><div class="result-inner"><div class="small-label">Hành vi dự đoán • Cửa sổ đầu tiên</div><div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap"><div class="prediction">{first['Hoạt động dự đoán'].upper()}</div><div><div class="small-label">Độ tin cậy</div><div class="confidence">{first['Độ tin cậy (%)']:.1f}%</div></div></div><div style="background:#1d3048;border-radius:99px;height:12px;margin-top:1.2rem"><div style="height:12px;width:{first['Độ tin cậy (%)']}%;background:#28d5c0;border-radius:99px"></div></div><p class="muted" style="margin-top:.6rem">Confidence score</p></div></div>''', unsafe_allow_html=True)
+
+        # Lay ket qua theo dung ten cot da tao
+        predicted_activity = first["Hoat dong du doan"]
+        confidence = first["Do tin cay (%)"]
+
+        st.markdown(
+            f'''
+            <div class="result-panel">
+                <div class="result-inner">
+                    <div class="small-label">
+                        Hành vi dự đoán • Cửa sổ đầu tiên
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+                        <div class="prediction">
+                            {predicted_activity.upper()}
+                        </div>
+                        <div>
+                            <div class="small-label">Độ tin cậy</div>
+                            <div class="confidence">{confidence:.1f}%</div>
+                        </div>
+                    </div>
+                    <div style="background:#1d3048;border-radius:99px;height:12px;margin-top:1.2rem">
+                        <div style="height:12px;width:{confidence}%;background:#28d5c0;border-radius:99px"></div>
+                    </div>
+                    <p class="muted" style="margin-top:.6rem">
+                        Confidence score
+                    </p>
+                </div>
+            </div>
+            ''',
+            unsafe_allow_html=True,
+        )
+
         st.markdown("#### Các kết quả dự đoán")
-        st.dataframe(pd.DataFrame(results), use_container_width=True, hide_index=True)
-        st.download_button("Tải kết quả CSV", pd.DataFrame(results).to_csv(index=False).encode("utf-8-sig"), "ket_qua_du_doan.csv", "text/csv")
+        results_df = pd.DataFrame(results)
+        st.dataframe(
+            results_df,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        st.download_button(
+            "Tải kết quả CSV",
+            results_df.to_csv(index=False).encode("utf-8-sig"),
+            "ket_qua_du_doan.csv",
+            "text/csv",
+        )
     else:
         st.markdown('''<div class="result-panel"><div class="small-label">Hành vi dự đoán</div><div class="result-inner" style="margin-top:1rem;text-align:center;padding:3.2rem 1rem"><div style="font-size:3rem">🧍</div><div class="prediction" style="font-size:1.4rem">Chưa có kết quả</div><p class="muted">Tải tệp CSV ở bên trái, sau đó nhấn “Bắt đầu dự đoán”.</p></div><p class="muted" style="margin-top:1.4rem">Kết quả chỉ xuất hiện sau khi mô hình đã nạp thành công và xử lý dữ liệu.</p></div>''', unsafe_allow_html=True)
 
