@@ -21,8 +21,3 @@
 
 ## Tại sao không sửa `trainer.py`/`main.py` gốc?
 Trainer gốc phụ thuộc cấu hình dataset AdaTime và dữ liệu `.pt` được chuẩn bị trước. Thay vì làm hỏng pipeline các dataset cũ, bộ này thêm `train_kuhar.py` dùng loader riêng cho KU-HAR. Nếu cần tích hợp ngược vào trainer gốc, phải bổ sung dataset config và backbone config riêng tương ứng.
-
-## Giới hạn phải ghi trong báo cáo
-- Input adapter chuyển sensor matrix thành ảnh xám là một quyết định thiết kế mới.
-- UDA chỉ có ý nghĩa đánh giá domain shift nếu source/target được phân tách theo nguồn dữ liệu độc lập (lý tưởng là participant/session). Random split các subsamples không đủ chứng minh điều đó.
-- Không thể cam kết accuracy trước khi chạy và kiểm tra split thực tế.
