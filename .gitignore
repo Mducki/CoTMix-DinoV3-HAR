@@ -14,12 +14,16 @@ env/
 !.env.example
 
 # Datasets and raw data
-data/
+/data/
 dataset/
 datasets/
 raw_data/
 raw_domains/
 **/raw_domains/
+
+# Keep DINOv3 Python data package
+!dinov3/dinov3/data/
+!dinov3/dinov3/data/*.py
 *.csv
 *.tsv
 *.parquet
@@ -61,7 +65,7 @@ temp/
 Thumbs.db
 __pycache__/
 .venv/
-data/
+/data/
 checkpoints/
 *.pth
 *.pt
