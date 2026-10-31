@@ -1,0 +1,10 @@
+.git
+.github
+.devcontainer
+__pycache__/
+*.pyc
+*.pth
+*.pt
+*.ckpt
+.env
+.streamlit/secrets.toml
